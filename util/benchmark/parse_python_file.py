@@ -242,7 +242,9 @@ def parse_python_file(file_path, file_content=None):
         if isinstance(node, ast.ClassDef):
             methods = []
             for n in node.body:
-                if isinstance(n, ast.FunctionDef):
+                if isinstance(n, ast.FunctionDef) or isinstance(
+                    n, ast.AsyncFunctionDef
+                ):
                     methods.append(
                         {
                             "name": n.name,
@@ -265,7 +267,7 @@ def parse_python_file(file_path, file_content=None):
                     "methods": methods,
                 }
             )
-        elif isinstance(node, ast.FunctionDef) and not isinstance(
+        elif isinstance(node, ast.FunctionDef) or isinstance(
             node, ast.AsyncFunctionDef
         ):
             if node.name not in class_methods:

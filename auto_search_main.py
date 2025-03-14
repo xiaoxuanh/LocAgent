@@ -130,9 +130,7 @@ def auto_search_process(result_queue,
         
     # for LLM which do not support function calling
     if not use_function_calling:
-    # # or limited text length for func calling description
-    
-    #     # 转换message
+        # 转换message
         messages = convert_fncall_messages_to_non_fncall_messages(messages, tools, add_in_context_learning_example=False)
             
     # code_history = []
@@ -172,37 +170,7 @@ def auto_search_process(result_queue,
                     messages=messages,
                     stop=NON_FNCALL_STOP_WORDS
                 )
-            # elif 'deepseek' in model_name:
-            #     messages = convert_fncall_messages_to_non_fncall_messages(messages, tools, add_in_context_learning_example=False)
-            #     response = client.chat.completions.create(
-            #         model=model_name,
-            #         messages=messages,
-            #         stream=False, 
-            #         max_tokens=8192
-            #     )
-            # elif tools and model_name == 'azure/gpt-4o':
-            #     messages = convert_fncall_messages_to_non_fncall_messages(messages, tools, add_in_context_learning_example=False)
-            #     response = litellm.completion(
-            #         model=model_name,
-            #         # tools=tools,
-            #         messages=messages,
-            #         temperature=temp,
-            #         stop=NON_FNCALL_STOP_WORDS
-            #     )
-            # elif tools and model_name == 'litellm_proxy/o3-mini-2025-01-31':
-            #     # messages = convert_fncall_messages_to_non_fncall_messages(messages, tools, add_in_context_learning_example=False)
-            #     response = litellm.completion(
-            #         model=model_name,
-            #         tools=tools,
-            #         messages=messages,
-            #         temperature=temp,
-            #         # stop=NON_FNCALL_STOP_WORDS,
-            #         reasoning_effort= "high"
-            #     )
             elif tools:
-                # logging.info('===========================')
-                # logging.info('using tools')
-                # logging.info('===========================')
                 response = litellm.completion(
                     model=model_name,
                     tools=tools,
@@ -235,10 +203,7 @@ def auto_search_process(result_queue,
         
         raw_response = deepcopy(response)
         # logging.info('response.choices[0].message')
-        # logging.info(response.choices[0].message)
         if tools and ('hosted_vllm' in model_name or 'qwen' in model_name.lower()
-                    #   or model_name=='azure/gpt-4o' 
-                    #   or model_name == 'litellm_proxy/o3-mini-2025-01-31'
                       or 'deepseek' in model_name
                       ):
             try:
@@ -272,21 +237,11 @@ def auto_search_process(result_queue,
             logging.debug(action.action_type)
             if action.action_type == ActionType.FINISH:
                 final_output = action.thought
-                # traj_msgs.append({
-                #     'role': 'assistant',
-                #     'content': response.choices[0].message.content,
-                #     'action_type': action.action_type,
-                # })
                 logging.info('='*15)
                 logging.info("\nFinal Response:=\n" + final_output)
                 finish = True # break
             elif action.action_type == ActionType.MESSAGE:
                 logging.debug("thought:\n" + action.content)
-                # traj_msgs.append({
-                #     'role': 'assistant',
-                #     'content': response.choices[0].message.content,
-                #     'action_type': action.action_type,
-                # })
                 # check if enough
                 messages.append({"role": "user", "content": fake_user_msg})
                 traj_msgs.append({"role": "user", "content": fake_user_msg})
@@ -365,18 +320,10 @@ def run_localize(rank, args, bug_queue, log_queue, output_file_lock, traj_file_l
 
         logger.info("=" * 60)
         logger.info(f"==== rank {rank} setup localize {instance_id} ====")
-        set_current_issue(instance_data=bug)
-        
-        # bench_data = get_current_issue_data()
-        # problem_statement = bug["problem_statement"]
-        # all_valid_files = get_all_valid_files()
+        set_current_issue(instance_data=bug, rank=rank)
 
-        # loc result template
-        found_files = []
-        found_edit_locs = []
+        # loc result
         raw_output_loc = []
-        # additional_artifact_loc_edit_location = None
-
         loc_trajs = {'trajs': []}
         total_prompt_tokens, total_completion_tokens = 0, 0
 
@@ -473,28 +420,10 @@ def run_localize(rank, args, bug_queue, log_queue, output_file_lock, traj_file_l
                     logger.warning(f'{e}. Try again.')
                     max_attempt_num = max_attempt_num - 1
                     continue
-                
 
                 loc_end_time = time.time()
                 if not loc_result:
                     continue # empty result
-                
-                # max_attempt_num = max_attempt_num - 1
-                # if max_attempt_num != 0:
-                #     # For generating training data
-                #     # multiple attempts: check if the result is correct
-                #     file_list, loc_edit_dict = parse_raw_loc_output(loc_result, all_valid_files)
-                #     found_edit_locs = convert_to_loc_edit_list(loc_edit_dict, file_list)
-                #     file_list = file_list[:3] # top 3 file
-                #     found_edit_locs = found_edit_locs[:3]
-                    
-                #     file_to_edit_locs = dict()
-                #     for i, temp_edit_locs in enumerate(found_edit_locs):
-                #         file_to_edit_locs[file_list[i]] = temp_edit_locs
-                #     result = test_file_to_edit_locs(bug, file_list, file_to_edit_locs, use_module=True) # TODO: top_n
-                #     if not result[-1]:
-                #         logger.info(f"==== Find wrong lines, continue to localize. ====")
-                #         continue
 
                 total_prompt_tokens += traj_data['usage']['prompt_tokens']
                 total_completion_tokens += traj_data['usage']['completion_tokens']
@@ -514,7 +443,6 @@ def run_localize(rank, args, bug_queue, log_queue, output_file_lock, traj_file_l
                     "found_modules": [[]],
                     "found_entities": [[]],
                     "raw_output_loc": raw_output_loc,
-                    # "additional_artifact_loc_edit_location": 
                     "meta_data": {
                         'repo': bug['repo'],
                         'base_commit': bug['base_commit'],
@@ -564,35 +492,12 @@ def run_localize(rank, args, bug_queue, log_queue, output_file_lock, traj_file_l
 
 
 def localize(args):
-    if args.loc_bench:
-        selected_ids = []
-        selected_ins_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config.toml')
-        if os.path.exists(selected_ins_file_path):
-            with open(selected_ins_file_path, 'r') as sf:
-                data = toml.load(sf)
-                if args.used_list in data:
-                    selected_ids = data[args.used_list]
-                
-        loc_bench_data = []
-        with open(args.dataset, 'r') as dtf:
-            for line in dtf:
-                instance = json.loads(line)
-                if not selected_ids:
-                    loc_bench_data.append(instance)
-                if selected_ids and instance['instance_id'] in selected_ids:
-                    loc_bench_data.append(instance)
-                    
-        swe_bench_tests = loc_bench_data
-        if args.eval_n_limit:
-            eval_n_limit = min(args.eval_n_limit, len(swe_bench_tests))
-            swe_bench_tests = swe_bench_tests[:eval_n_limit]
-    else:
-        swe_bench_data = load_dataset(args.dataset, split=args.split)
-        swe_bench_tests = filter_dataset(swe_bench_data, 'instance_id', args.used_list)
-        if args.eval_n_limit:
-            eval_n_limit = min(args.eval_n_limit, len(swe_bench_tests))
-            swe_bench_tests = swe_bench_tests.select(range(0, eval_n_limit))
-            logging.info(f'Limiting evaluation to first {eval_n_limit} instances.')
+    bench_data = load_dataset(args.dataset, split=args.split)
+    bench_tests = filter_dataset(bench_data, 'instance_id', args.used_list)
+    if args.eval_n_limit:
+        eval_n_limit = min(args.eval_n_limit, len(bench_tests))
+        bench_tests = bench_tests.select(range(0, eval_n_limit))
+        logging.info(f'Limiting evaluation to first {eval_n_limit} instances.')
 
     manager = mp.Manager()
     queue = manager.Queue()
@@ -621,7 +526,7 @@ def localize(args):
             processed_instance = [loc['instance_id'] for loc in locs]
     
     num_bugs = 0
-    for bug in swe_bench_tests:
+    for bug in bench_tests:
         instance_id = bug["instance_id"]
         if instance_id in processed_instance:
             print(f"instance {instance_id} has already been processed, skip.")
@@ -649,25 +554,31 @@ def localize(args):
 
 
 def merge(args):
-    args.merge_file = 'merged_' + args.output_file.split('/')[-1].split('.')[0] + f'_{args.ranking_method}.jsonl'
-    # args.merge_file = args.merge_file.replace('.jsonl', f'_{args.num_samples}.jsonl')
-    args.merge_file = os.path.join(args.output_folder, args.merge_file)
-    with open(args.merge_file, "w") as file:
-        file.write("")
-
+    args.merge_file = os.path.join(args.output_folder, 'merged_' + os.path.basename(args.output_file))
+    
+    if args.ranking_method == 'mrr':
+        args.merge_file = args.merge_file.replace('.jsonl', f'_{args.ranking_method}.jsonl')
+        
+    clear_file(args.merge_file)
     with open(args.output_file, 'r') as file:
         for line in file:
             loc_data = json.loads(line)
             if loc_data['found_files'] == [[]]:
                 loc_data['found_files'] = []
-                loc_data['found_edit_locs'] = [[]]
+                loc_data['found_modules'] = []
+                loc_data['found_entities'] = []
             else:
-                merged_fils, merged_edit_locs = merge_sample_locations(loc_data['found_files'], 
-                                                                    loc_data['found_edit_locs'],
+                loc_data['found_files'] = loc_data['found_files']
+                loc_data['found_modules'] = loc_data['found_modules']
+                loc_data['found_entities'] = loc_data['found_entities']
+                ranked_files, ranked_modules, ranked_funcs = merge_sample_locations(loc_data['found_files'], 
+                                                                    loc_data['found_modules'],
+                                                                    loc_data['found_entities'],
                                                                     ranking_method=args.ranking_method,
                                                                     )
-                loc_data['found_files'] = merged_fils
-                loc_data['found_edit_locs'] = merged_edit_locs
+                loc_data['found_files'] = ranked_files
+                loc_data['found_modules'] = ranked_modules
+                loc_data['found_entities'] = ranked_funcs
             with open(args.merge_file, 'a') as f:
                 f.write(json.dumps(loc_data) + '\n')
 
@@ -677,20 +588,13 @@ def main():
     parser.add_argument("--localize", action="store_true")
     parser.add_argument("--merge", action="store_true")
     parser.add_argument("--use_example", action="store_true")
-    parser.add_argument("--selected_pipeline", type=str, 
-                        default='auto_search',
-                        choices=[
-                            'auto_search',
-                            'simple_localize',
-                        ])
-    parser.add_argument("--ranking_method", type=str, default='majority', 
+    parser.add_argument("--ranking_method", type=str, default='mrr',
                         choices=['mrr', 'majority'])
     
     parser.add_argument("--dataset", type=str, default="princeton-nlp/SWE-bench_Lite")
     parser.add_argument("--split", type=str, default="test")
     parser.add_argument("--eval_n_limit", type=int, default=0)
     parser.add_argument("--used_list", type=str, default='selected_ids')
-    parser.add_argument("--loc_bench", action="store_true")
     
     parser.add_argument("--output_folder", type=str, required=True)
     parser.add_argument("--output_file", type=str, default="loc_outputs.jsonl")
@@ -704,16 +608,17 @@ def main():
                  "deepseek/deepseek-chat", "deepseek-ai/DeepSeek-R1",
                  "litellm_proxy/claude-3-5-sonnet-20241022", "litellm_proxy/gpt-4o-2024-05-13", "litellm_proxy/o3-mini-2025-01-31",
                  # fine-tuned model
-                 "azure/gpt-4o-mini-ft", "azure/gpt-4o-mini-1029-ft",
                  "openai/qwen-7B", "openai/qwen-7B-128k", "openai/ft-qwen-7B", "openai/ft-qwen-7B-128k",
                  "openai/qwen-32B", "openai/qwen-32B-128k", "openai/ft-qwen-32B", "openai/ft-qwen-32B-128k",
         ]
     )
     parser.add_argument("--use_function_calling", action="store_true")
-    parser.add_argument("--simple_desc", action="store_true")
+    parser.add_argument("--simple_desc", action="store_true", 
+                        help="use simple function description due to some LLMs' limitation; set to `False` for better performance if you use Claude.")
     
-    parser.add_argument("--max_attempt_num", type=int, default=1)
-    parser.add_argument("--num_samples", type=int, default=1)
+    parser.add_argument("--max_attempt_num", type=int, default=1, 
+                        help='Only use in generating training trajectories.')
+    parser.add_argument("--num_samples", type=int, default=2)
     parser.add_argument("--num_processes", type=int, default=-1)
     
     parser.add_argument("--log_level", type=str, default='INFO')

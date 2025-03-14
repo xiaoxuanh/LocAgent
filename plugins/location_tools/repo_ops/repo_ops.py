@@ -10,6 +10,7 @@ import uuid
 import networkx as nx
 from graph_encoder.dependency_graph import RepoEntitySearcher, RepoDependencySearcher
 from graph_encoder.dependency_graph.build_graph_v2 import (
+    build_graph_v2,
     NODE_TYPE_DIRECTORY, NODE_TYPE_FILE, NODE_TYPE_CLASS, NODE_TYPE_FUNCTION,
     EDGE_TYPE_CONTAINS, # EDGE_TYPE_INHERITS, EDGE_TYPE_INVOKES, EDGE_TYPE_IMPORTS, 
     VALID_NODE_TYPES, VALID_EDGE_TYPES
@@ -65,19 +66,6 @@ def set_current_issue(instance_id: str = None,
         CURRENT_ISSUE_ID = instance_data['instance_id']
         CURRENT_INSTANCE = instance_data
 
-    # setup graph traverser
-    global DP_GRAPH_ENTITY_SEARCHER, DP_GRAPH_DEPENDENCY_SEARCHER, DP_GRAPH
-    G = pickle.load(
-        open(f"{GRAPH_INDEX_DIR}/{CURRENT_ISSUE_ID}.pkl", "rb")
-    )
-    DP_GRAPH_ENTITY_SEARCHER = RepoEntitySearcher(G)
-    DP_GRAPH_DEPENDENCY_SEARCHER = RepoDependencySearcher(G)
-    DP_GRAPH = G
-    
-    ALL_FILE = DP_GRAPH_ENTITY_SEARCHER.get_all_nodes_by_type(NODE_TYPE_FILE)
-    ALL_CLASS = DP_GRAPH_ENTITY_SEARCHER.get_all_nodes_by_type(NODE_TYPE_CLASS)
-    ALL_FUNC = DP_GRAPH_ENTITY_SEARCHER.get_all_nodes_by_type(NODE_TYPE_FUNCTION)
-
     global REPO_SAVE_DIR
     # Generate a temperary folder and add uuid to avoid collision
     REPO_SAVE_DIR = os.path.join('playground', str(uuid.uuid4()))
@@ -85,7 +73,32 @@ def set_current_issue(instance_id: str = None,
     assert not os.path.exists(REPO_SAVE_DIR), f"{REPO_SAVE_DIR} already exists"
     # create playground
     os.makedirs(REPO_SAVE_DIR)
-
+    
+    # setup graph traverser
+    global DP_GRAPH_ENTITY_SEARCHER, DP_GRAPH_DEPENDENCY_SEARCHER, DP_GRAPH
+    graph_index_file = f"{GRAPH_INDEX_DIR}/{CURRENT_ISSUE_ID}.pkl"
+    if not os.path.exists(graph_index_file):
+        # pull repo
+        repo_dir = setup_repo(instance_data=CURRENT_INSTANCE, repo_base_dir=REPO_SAVE_DIR, dataset=None)
+        # parse the repository:
+        try:
+            G = build_graph_v2(repo_dir, global_import=True)
+            with open(graph_index_file, 'wb') as f:
+                pickle.dump(G, f)
+            logging.info(f'[{rank}] Processed {CURRENT_ISSUE_ID}')
+        except Exception as e:
+            logging.error(f'[{rank}] Error processing {CURRENT_ISSUE_ID}: {e}')
+    else:
+        G = pickle.load(open(graph_index_file, "rb"))
+        
+    DP_GRAPH_ENTITY_SEARCHER = RepoEntitySearcher(G)
+    DP_GRAPH_DEPENDENCY_SEARCHER = RepoDependencySearcher(G)
+    DP_GRAPH = G
+    
+    ALL_FILE = DP_GRAPH_ENTITY_SEARCHER.get_all_nodes_by_type(NODE_TYPE_FILE)
+    ALL_CLASS = DP_GRAPH_ENTITY_SEARCHER.get_all_nodes_by_type(NODE_TYPE_CLASS)
+    ALL_FUNC = DP_GRAPH_ENTITY_SEARCHER.get_all_nodes_by_type(NODE_TYPE_FUNCTION)
+    
     logging.debug(f'Rank = {rank}, set CURRENT_ISSUE_ID = {CURRENT_ISSUE_ID}')
 
 
@@ -137,24 +150,6 @@ def get_graph():
 def get_repo_save_dir():
     global REPO_SAVE_DIR
     return REPO_SAVE_DIR
-
-# file_content_in_block_template = """
-# file: {file_name}
-# ```
-# {content}
-# ```
-# """
-
-# def get_file_content_(file_name: str, return_str=False):
-#     files, _, _ = get_current_repo_modules()
-
-#     for fnode in files:
-#         if fnode['name'] == file_name:
-#             if return_str:
-#                 return '\n'.join(fnode['content'])
-#             else:
-#                 return fnode['content']
-#     return None
 
 
 def get_module_name_by_line_num(file_path: str, line_num: int):
@@ -349,7 +344,7 @@ def search_entity(query_info, include_files: List[str] = None):
                 if not nids: continue
                 # if not continue_search: break
 
-                # class 和 function 逻辑一致(3个以内显示)
+                # procee class and function in the same way
                 if ntype in [NODE_TYPE_FUNCTION, NODE_TYPE_CLASS, NODE_TYPE_FILE]:
                     if len(nids) <= 3:
                         node_datas = searcher.get_node_data(nids, return_code_content=True)
@@ -382,7 +377,7 @@ def search_entity(query_info, include_files: List[str] = None):
     if continue_search:
         module_nids = []
 
-        # # 搜索时加不加file?
+        # append the file name to keyword?
         # # if not any(symbol in file_path_or_pattern for symbol in ['*','?', '[', ']']):
         # term_with_file = f'{file_path_or_pattern}:{term}'
         # module_nids = bm25_module_retrieve(query=term_with_file, include_files=include_files)
@@ -560,7 +555,7 @@ def search_code_snippets(
     all_query_results = []
     
     if search_terms:
-        # 所有搜索项一起搜
+        # search all terms together
         filter_terms = []
         for term in search_terms:
             if is_test_file(term):
@@ -606,7 +601,7 @@ def search_code_snippets(
         # result += f"Search `line(s) {line_nums}` in file `{file_path}` ...\n"
         query_info = QueryInfo(term=term, line_nums=line_nums, file_path_or_pattern=file_path)
         
-        # 根据文件名和行号搜索代码
+        # Search for codes based on file name and line number
         query_results = get_code_block_by_line_nums(query_info)
         all_query_results.extend(query_results)
     
@@ -650,7 +645,7 @@ def search_code_snippets(
                     cur_result += '\n'
 
             elif format_mode == 'preview':
-                # 去掉小模块, 只留下大模块
+                # Remove the small modules, leaving only the large ones
                 filtered_results = []
                 grouped_by_file = defaultdict(list)
                 for qr in query_results:
@@ -769,11 +764,9 @@ def bm25_content_retrieve(
     instance = get_current_issue_data()
     query = query_info.term
     
-    # 判断corpus是否存在，不存在则重新生成
     persist_path = os.path.join(BM25_INDEX_DIR, instance["instance_id"])
     if os.path.exists(f'{persist_path}/corpus.jsonl'):
-        # TODO: if similairy_top_k 大于 persit_retriever setting 中的 similairy_top_k
-        # 则需要重新生成
+        # TODO: if similairy_top_k > cache's setting, then regenerate
         retriever = load_retriever(persist_path)
     else:
         repo_playground = get_repo_save_dir()

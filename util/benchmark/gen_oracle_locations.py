@@ -28,19 +28,6 @@ from util.benchmark.parse_python_file import (
 import torch.multiprocessing as mp
 from datasets import load_dataset
 
-# testcase
-# code = "    from django.core.management.color import color_style "
-# code = "import sys"
-# def is_import_statement(code_str):
-#     try:
-#         parsed = ast.parse(code_str.strip())
-#         for node in ast.walk(parsed):
-#             if isinstance(node, ast.ImportFrom) or isinstance(node, ast.Import):
-#                 return True
-#     except (ValueError, SyntaxError) as e:
-#         return False
-#     return False
-
 
 def parse_module_name(code_str: str):
     # Regular expression to match the function definition and extract the name
@@ -108,7 +95,7 @@ def get_module_from_line_number_with_file_structure(line, file_structure,
         if line >= txt['start_line'] and line <= txt['end_line']:
             desc = f"function: {txt['name']}"
             return desc
-        
+    
     return None
 
 
@@ -127,7 +114,7 @@ def apply_patch_str(patch, apply_file_path, hunk_size):
             capture_output=True
         )
         # print("Patch applied successfully.")
-        logging.debug(result.stdout)
+        # logging.debug(result.stdout)
         offsets = [0 for i in range(hunk_size)]
         for out in str(result.stdout).splitlines():
             # if out.startswith('patching file'):
@@ -143,10 +130,10 @@ def apply_patch_str(patch, apply_file_path, hunk_size):
                 offset = int(match.group(3))
                 offsets[hunk_id-1] = offset
                 
-        logging.debug('offsets', offsets)
+        # logging.debug('offsets', offsets)
         return (True, offsets)
     except subprocess.CalledProcessError as e:
-        logging.warning(f"Error applying patch: {e.stderr}")
+        # logging.warning(f"Error applying patch: {e.stderr}")
         return (False, [])
     finally:
         # Clean up the temporary file
@@ -209,7 +196,8 @@ def group_patch_by_file(patch):
     return {file: "".join(hunks) for file, hunks in patch_by_file.items()}
 
 
-def extract_module_from_patch(instance, repo_dir, max_edit_file_num=1, 
+def extract_module_from_patch(instance, repo_dir, max_edit_file_num=1,
+                              logger=None, 
                               include_gvar=False,
                               rank=0):
     edit_files = get_oracle_filenames(instance['patch'])
@@ -249,7 +237,7 @@ def extract_module_from_patch(instance, repo_dir, max_edit_file_num=1,
         # Extract the partial patch for this file
         partial_patch = patch_by_file.get(file)
         if not partial_patch:
-            logging.warning(f"No patch found for {file}")
+            # logging.warning(f"No patch found for {file}")
             continue
         
         # Apply the patch
@@ -330,35 +318,6 @@ def extract_module_from_patch(instance, repo_dir, max_edit_file_num=1,
                         changes['edited_modules'].append(module)
                     else:
                         changes['added_modules'].append(module)
-                        
-                # elif not module and add['content'].strip():
-                    # is_class = get_module_from_line_number_with_file_structure(line, new_file_structure, include_class=True)
-                    # if is_class and is_class not in changes['added_modules']:
-                    #     changes['added_modules'].append(is_class)
-                    # else:
-                    #     added_lines.append(add)
-            
-            # for delete in deleted_lines:
-            #     line = delete['line']
-            #     module = get_module_from_line_number_with_file_structure(line, old_file_structure, True)
-            #     if module and module not in changes['edited_modules']:
-            #             changes['edited_modules'].append(module)
-            #             continue
-            #     # if f'line: {line}' not in changes['edited_lines']:
-            #     #     changes['edited_lines'].append(f'line: {line}')
-                    
-            # for add in added_lines:
-            #     line = add['line']
-            #     module = get_module_from_line_number_with_file_structure(line, new_file_structure, True)
-                
-            #     if module:
-            #         if module not in changes['edited_modules'] and check_moduel_existed(module, old_file_structure):
-            #             changes['edited_modules'].append(module)
-            #             continue
-            #         if module not in changes['added_modules']:
-            #             changes['added_modules'].append(module)
-                # elif f'line: {line}' not in changes['edited_lines']:
-                #     changes['added_lines'].append(f'line: {line}')
         
         _changes = collections.defaultdict(list)
         for mode, change in changes.items():
@@ -465,22 +424,18 @@ def run_extract_locations_from_patch(rank,
             # pull the repo
             repo_playground = os.path.join(repo_playground, str(uuid.uuid4()))
             os.makedirs(repo_playground, exist_ok=True)
-            # repo_dir = setup_repo(instance_data=instance, repo_base_dir=repo_playground)
             repo_dir = setup_repo(instance_data=instance, 
                                 repo_base_dir=repo_playground,
                                 dataset=None, split=None
                                 )
-            file_changes = extract_module_from_patch(instance, repo_dir, max_edit_file_num=max_edit_file_num, rank=rank)
+            file_changes = extract_module_from_patch(instance, repo_dir, 
+                                                     logger=logger,
+                                                     max_edit_file_num=max_edit_file_num, rank=rank)
             if not file_changes:
-                # empty_edit_list.append(instance['instance_id'])
                 continue
-            else:
-                for fchange in file_changes:
-                    if not fchange['changes']: # or \
-                        # "edited_modules" not in fchange['changes'] or \
-                        # not fchange['changes']["edited_modules"]:
-                        # empty_edit_list.append(instance['instance_id'])
-                        continue
+            # else:
+            #     for fchange in file_changes:
+            #         if not fchange['changes']: continue
             with output_file_lock:
                 with open(output_file, 'a') as f:
                     f.write(json.dumps({
@@ -493,7 +448,6 @@ def run_extract_locations_from_patch(rank,
                     }) + '\n')
         except FileNotFoundError:
             logger.debug(f"rank {rank}: FileNotFoundError.")
-            
             # error_list.append(instance['instance_id'])
         except subprocess.CalledProcessError as e:
             logger.debug(f"rank {rank}: {e}")
@@ -570,15 +524,19 @@ if __name__ == "__main__":
     # parser.add_argument('--merge_init', action='store_true')
     args = parser.parse_args()
     # # for test/debug
-    # result = extract_module_from_patch('sympy__sympy-11870', args.repo_base_dir)
+    # bench_data = load_jsonl(args.dataset)
+    # instance = [data for data in bench_data if data['instance_id'] == 'Chainlit__chainlit-1441'][0]
+    # repo_dir = setup_repo(instance_data=instance, repo_base_dir=args.repo_base_dir,
+    #                             dataset=None, split=None)
+    # result = extract_module_from_patch(instance, repo_dir,
+    #                                    max_edit_file_num=args.max_edit_file_num)
     # print(result)
+    
     
     if args.dataset == 'princeton-nlp/SWE-bench_Lite' and args.split == 'test':
         generate_oracle_locations_for_dataset(args.dataset, args.split, 
                                               args.output_dir, args.repo_base_dir)
     elif args.dataset == 'princeton-nlp/SWE-bench' and args.split == 'train':
-        # selected_list_file = '/home/ubuntu/auto-search-agent/scripts/notebooks/fine-tune/data/selected_instances_20241022.json'
-        # selected_list_file = '/home/ubuntu/auto-search-agent/scripts/notebooks/fine-tune/data/selected_instances_20241122.json'
         with open(args.selected_list_file, 'r') as f:
             selected_list = json.loads(f.read())
         generate_oracle_locations_for_dataset(args.dataset, args.split, 

@@ -12,7 +12,7 @@ from graph_encoder.dependency_graph.build_graph_v2 import (
 )
 import pickle
 import os
-GRAPH_INDEX_DIR = os.environ.get("GRAPH_INDEX_DIR")
+GRAPH_INDEX_DIR = os.environ.get("GRAPH_INDEX_DIR", "graph_encoder/DATA/index")
 
 
 def parse_raw_loc_output(raw_output, valid_files):
@@ -253,14 +253,14 @@ def get_edit_entities_from_raw_locs(found_edit_locs,
                     found_edit_entities.append(module_id)
                     continue
                 else:
-                    logging.info(f"{full_loc} method could not be found")
+                    logging.debug(f"{full_loc} method could not be found")
                     
             # directly search for the function 'loc'
             if f"{pred_file}:{loc}" in searcher.G:
                 found_edit_entities.append(f"{pred_file}:{loc}")
             # relevant_function = get_function_by_name(loc, pred_file, functions=functions)
             else:
-                logging.info(f"{loc} function could not be found")
+                logging.debug(f"{loc} function could not be found")
                 
                 if current_class_name != "":
                     # check if its a method
@@ -311,7 +311,7 @@ def get_edit_entities_from_raw_locs(found_edit_locs,
     ranked_loc_weights = sorted(loc_weights.items(), key=lambda x: x[1], reverse=True)
     res_edit_entities = [loc for loc, _ in ranked_loc_weights]
     # found_edit_module_loc = [['\n'.join(modules)] for modules in found_edit_modules]
-    import pdb; pdb.set_trace()
+    # import pdb; pdb.set_trace()
     return res_edit_entities
 
 
