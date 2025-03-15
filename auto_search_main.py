@@ -612,9 +612,10 @@ def main():
                  "openai/qwen-32B", "openai/qwen-32B-128k", "openai/ft-qwen-32B", "openai/ft-qwen-32B-128k",
         ]
     )
-    parser.add_argument("--use_function_calling", action="store_true")
+    parser.add_argument("--use_function_calling", action="store_true",
+                        help='Enable function calling features of LLMs. If disabled, codeact will be used to support function calling.')
     parser.add_argument("--simple_desc", action="store_true", 
-                        help="use simple function description due to some LLMs' limitation; set to `False` for better performance if you use Claude.")
+                        help="Use simplified function descriptions due to certain LLM limitations. Set to False for better performance when using Claude.")
     
     parser.add_argument("--max_attempt_num", type=int, default=1, 
                         help='Only use in generating training trajectories.')

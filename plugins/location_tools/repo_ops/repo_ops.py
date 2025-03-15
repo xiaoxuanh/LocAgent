@@ -8,14 +8,14 @@ import collections
 from copy import deepcopy
 import uuid
 import networkx as nx
-from graph_encoder.dependency_graph import RepoEntitySearcher, RepoDependencySearcher
-from graph_encoder.dependency_graph.build_graph_v2 import (
-    build_graph_v2,
+from dependency_graph import RepoEntitySearcher, RepoDependencySearcher
+from dependency_graph.build_graph import (
+    build_graph,
     NODE_TYPE_DIRECTORY, NODE_TYPE_FILE, NODE_TYPE_CLASS, NODE_TYPE_FUNCTION,
     EDGE_TYPE_CONTAINS, # EDGE_TYPE_INHERITS, EDGE_TYPE_INVOKES, EDGE_TYPE_IMPORTS, 
     VALID_NODE_TYPES, VALID_EDGE_TYPES
 )
-from graph_encoder.dependency_graph.traverse_graph_v2 import (
+from dependency_graph.traverse_graph import (
     is_test_file, traverse_tree_structure,
     traverse_graph_structure, traverse_json_structure,
 )
@@ -82,7 +82,7 @@ def set_current_issue(instance_id: str = None,
         repo_dir = setup_repo(instance_data=CURRENT_INSTANCE, repo_base_dir=REPO_SAVE_DIR, dataset=None)
         # parse the repository:
         try:
-            G = build_graph_v2(repo_dir, global_import=True)
+            G = build_graph(repo_dir, global_import=True)
             with open(graph_index_file, 'wb') as f:
                 pickle.dump(G, f)
             logging.info(f'[{rank}] Processed {CURRENT_ISSUE_ID}')

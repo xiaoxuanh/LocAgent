@@ -3,8 +3,8 @@ import re
 import pickle
 from typing import Dict, List, Optional
 import networkx as nx
-from graph_encoder.dependency_graph.traverse_graph_v2 import is_test_file
-from graph_encoder.dependency_graph.build_graph_v2 import (
+from dependency_graph.traverse_graph import is_test_file
+from dependency_graph.build_graph import (
     VALID_NODE_TYPES,
     NODE_TYPE_FILE,
     NODE_TYPE_CLASS,

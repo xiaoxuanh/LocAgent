@@ -5,7 +5,7 @@ from tqdm import tqdm
 from datasets import load_dataset
 import litellm
 import os
-from graph_encoder.dependency_graph import RepoSearcher, RepoEntitySearcher
+from dependency_graph import RepoSearcher, RepoEntitySearcher
 import pickle
 from plugins.location_tools.repo_ops.repo_ops import (
     set_current_issue,
@@ -16,7 +16,7 @@ from plugins.location_tools.repo_ops.repo_ops import (
     find_matching_files_from_list,
     get_module_name_by_line_num
 )
-from graph_encoder.dependency_graph.build_graph_v2 import (
+from dependency_graph.build_graph import (
     NODE_TYPE_CLASS, NODE_TYPE_FUNCTION,
 )
 import networkx as nx

@@ -11,9 +11,9 @@ from llama_index.core.node_parser import SimpleFileNodeParser
 from llama_index.retrievers.bm25 import BM25Retriever
 from repo_index.index.epic_split import EpicSplitter
 
-from graph_encoder.dependency_graph import RepoEntitySearcher
-from graph_encoder.dependency_graph.traverse_graph_v2 import is_test_file
-from graph_encoder.dependency_graph.build_graph_v2 import (
+from dependency_graph import RepoEntitySearcher
+from dependency_graph.traverse_graph import is_test_file
+from dependency_graph.build_graph import (
     NODE_TYPE_DIRECTORY,
     NODE_TYPE_FILE,
     NODE_TYPE_CLASS,

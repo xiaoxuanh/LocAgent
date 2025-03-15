@@ -1,5 +1,5 @@
 from typing import List, Optional, Union, Tuple, Dict
-from graph_encoder.dependency_graph.build_graph_v2 import (
+from dependency_graph.build_graph import (
     NODE_TYPE_DIRECTORY, NODE_TYPE_FILE, NODE_TYPE_CLASS, NODE_TYPE_FUNCTION
 )
 from plugins.location_tools.utils.compress_file import get_skeleton

@@ -6,13 +6,13 @@ from collections import Counter
 from util.benchmark.parse_python_file import (
     parse_global_var_from_code, is_global_var
 )
-from graph_encoder.dependency_graph import RepoEntitySearcher
-from graph_encoder.dependency_graph.build_graph_v2 import (
+from dependency_graph import RepoEntitySearcher
+from dependency_graph.build_graph import (
     NODE_TYPE_FILE, NODE_TYPE_FUNCTION, NODE_TYPE_CLASS
 )
 import pickle
 import os
-GRAPH_INDEX_DIR = os.environ.get("GRAPH_INDEX_DIR", "graph_encoder/DATA/index")
+GRAPH_INDEX_DIR = os.environ.get("GRAPH_INDEX_DIR", "index_data/graph_index")
 
 
 def parse_raw_loc_output(raw_output, valid_files):
