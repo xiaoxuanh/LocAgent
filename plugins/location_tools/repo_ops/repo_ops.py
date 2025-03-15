@@ -82,6 +82,7 @@ def set_current_issue(instance_id: str = None,
         repo_dir = setup_repo(instance_data=CURRENT_INSTANCE, repo_base_dir=REPO_SAVE_DIR, dataset=None)
         # parse the repository:
         try:
+            os.makedirs(GRAPH_INDEX_DIR, exist_ok=True)
             G = build_graph(repo_dir, global_import=True)
             with open(graph_index_file, 'wb') as f:
                 pickle.dump(G, f)

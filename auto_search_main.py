@@ -371,12 +371,7 @@ def run_localize(rank, args, bug_queue, log_queue, output_file_lock, traj_file_l
                         tools = function_calling.get_tools(
                             codeact_enable_search_keyword=True,
                             codeact_enable_search_entity=True,
-                            # codeact_enable_fragmental_content_tools=True,
-                            
                             codeact_enable_tree_structure_traverser=True,
-                            # codeact_enable_graph_structure_traverser=True,
-                            # codeact_enable_specific_hops_structure_traverser=True,
-                            # codeact_enable_fragmental_structure_tools=True,
                             simple_desc = args.simple_desc,
                         )
                     process = ctx.Process(target=auto_search_process, kwargs={

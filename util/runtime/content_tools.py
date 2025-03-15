@@ -4,10 +4,6 @@ from litellm import (
     ModelResponse,
 )
 
-#     - If a term matches a file, class, or function name, matching entities are retrieved.
-    # - If there is no match with any module name, it attempts to find code snippets that likely contain the term.
-    # - When formatted as 'file_path:QualifiedName' (e.g., 'src/helpers/math_helpers.py:MathUtils.calculate_sum') ,
-    #   or just 'file_path', the corresponding complete code or file content is retrieved.
 
 _SEARCHENTITY_DESCRIPTION = """
 Searches the codebase to retrieve the complete implementations of specified entities based on the provided entity names. 
