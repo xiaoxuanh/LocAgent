@@ -10,7 +10,7 @@
 
 ## ℹ️ Overview
 We introduce **LocAgent**, a framework that addresses code localization through graph-based representation.
-By parsing codebases into directed heterogeneous graphs, \textsc{LocAgent} creates a lightweight representation that captures code structures and their dependencies, enabling LLM agents to effectively search and locate relevant entities through powerful multi-hop reasoning.
+By parsing codebases into directed heterogeneous graphs, LocAgent creates a lightweight representation that captures code structures and their dependencies, enabling LLM agents to effectively search and locate relevant entities through powerful multi-hop reasoning.
  <!-- <div align="center">
   <img src="./assets/overview.png" alt="Overview" width="800">
 </div> -->
