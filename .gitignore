@@ -156,16 +156,9 @@ cython_debug/
 
 outputs_data/
 playground/
-plugins/etrieval_tools/call_graphs/
-scripts/notebooks/try/
 scripts/env/
 scripts/plot/
-scripts/auto_search_*
 config.yaml
-backup_*
-/*.sh
-/trials/
-/graph_encoder/DATA/
 index_data/
 test/
 deprecated/
@@ -184,6 +177,3 @@ evaluation/gt_data/
 evaluation/agentless/
 sft/
 config.toml
-graph_encoder/notebook/
-graph_encoder/test_repo/
-graph_encoder/plots/

@@ -1,21 +1,17 @@
 export PYTHONPATH=$PYTHONPATH:$(pwd)
-BASE_DIR='YOUR_REPO_DIR'
-GRAPH_INDEX_DIR='{CACHE_DIR}/{DATASET_NAME}/graph_index'
 
-cd ./graph_encoder
+# generate graph index for SWE-bench_Lite
 python dependency_graph/batch_build_graph.py \
         --dataset 'czlll/SWE-bench_Lite' \
         --split 'test' \
-        --repo_path $BASE_DIR/playground/build_graph \
-        --out_path $GRAPH_INDEX_DIR \
+        --repo_path playground/build_graph \
         --num_processes 50 \
         --download_repo
 
-
-# python dependency_graph/batch_build_graph.py \
-#         --dataset 'czlll/Loc-Bench' \
-#         --split 'test' \
-#         --repo_path $BASE_DIR/playground/build_graph \
-#         --out_path $GRAPH_INDEX_DIR \
-#         --num_processes 50 \
-#         --download_repo
+# generate graph index for Loc-Bench
+python dependency_graph/batch_build_graph.py \
+        --dataset 'czlll/Loc-Bench' \
+        --split 'test' \
+        --repo_path playground/build_graph \
+        --num_processes 50 \
+        --download_repo
