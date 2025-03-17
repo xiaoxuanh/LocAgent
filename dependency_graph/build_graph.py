@@ -173,7 +173,7 @@ class CodeAnalyzer(ast.NodeVisitor):
         return ast.get_source_segment(source_code, node)
 
 
-# 解析指定文件，使用CodeAnalyzer分析文件中的类和顶级函数
+# Parese the given file, use CodeAnalyzer to extract classes and helper functions from the file
 def analyze_file(filepath):
     with open(filepath, 'r') as file:
         code = file.read()
@@ -280,22 +280,8 @@ def resolve_symlink(file_path):
         return None
 
 
-# def read_file_content(file_path):
-#     if os.path.islink(file_path):
-#         # print('ori', file_path)
-#         actual_path = resolve_symlink(file_path)
-#         if not actual_path:
-#             return None
-#         # print('actual', actual_path)
-#         with open(actual_path, 'r') as f:
-#             file_content = f.read()
-#     else:
-#         with open(file_path, 'r') as f:
-#             file_content = f.read()
-#     return file_content
-
-
-# 遍历repo_path下的所有Python文件，构建文件、类和函数的依赖关系图
+# Traverse all the Python files under repo_path, construct dependency graphs 
+# with node types: directory, file, class, function
 def build_graph(repo_path, fuzzy_search=True, global_import=False):
     graph = nx.MultiDiGraph()
     file_nodes = {}
@@ -340,13 +326,6 @@ def build_graph(repo_path, fuzzy_search=True, global_import=False):
                     file_path = os.path.join(root, file)
                     filename = os.path.relpath(file_path, repo_path)
                     if os.path.islink(file_path):
-                        # print('ori', file_path)
-                        # actual_path = resolve_symlink(file_path)
-                        # if not actual_path:
-                        #     continue
-                        # print('actual', actual_path)
-                        # with open(actual_path, 'r') as f:
-                        #     file_content = f.read()
                         continue
                     else:
                         with open(file_path, 'r') as f:
@@ -589,9 +568,9 @@ def analyze_init(node, code_tree, graph, repo_path):
 
                     for sub_node in ast.walk(body_item):
                         if isinstance(sub_node, ast.Call):
-                            if isinstance(sub_node.func, ast.Name):  # 普通函数或类
+                            if isinstance(sub_node.func, ast.Name):  # function or class
                                 add_invoke(sub_node.func.id)
-                            if isinstance(sub_node.func, ast.Attribute):  # 成员函数
+                            if isinstance(sub_node.func, ast.Attribute):  # member function
                                 add_invoke(sub_node.func.attr)
                     break
             break
@@ -603,7 +582,7 @@ def analyze_invokes(node, code_tree, graph, repo_path):
     caller_name = node.split(':')[-1].split('.')[-1]
     file_path = os.path.join(repo_path, node.split(':')[0])
 
-    # 存储找到的调用关系
+    # store all the invokes found
     invocations = []
 
     def add_invoke(func_name):
@@ -633,19 +612,19 @@ def analyze_invokes(node, code_tree, graph, repo_path):
             # Recursively traverse child nodes
             traverse_call(child)
 
-    # 遍历 AST 节点以找到调用关系
+    # Traverse AST nodes to find invokes
     for ast_node in ast.walk(code_tree):
         if (isinstance(ast_node, (ast.FunctionDef, ast.AsyncFunctionDef))
                 and ast_node.name == caller_name):
-            # add imports
+            # Add imports
             imports = find_imports(file_path, repo_path, tree=ast_node)
             add_imports(node, imports, graph, repo_path)
 
-            # 遍历函数装饰器
+            # Traverse decorators
             for decorator_node in ast_node.decorator_list:
                 process_decorator_node(decorator_node)
 
-            # 遍历函数体内的所有invoke子节点 (不包括内部函数、类)
+            # Traverse all the invokes nodes inside the function body, excluding inner functions and classes
             traverse_call(ast_node)
             break
 
