@@ -327,27 +327,12 @@ def cal_metrics_w_dataset(loc_file, key,
                         pred_modules.append(module_name)
                     pred_dict[ins] = pred_modules
     else:
-        # pred_dict = collections.defaultdict(list)
         pred_dict = convert_solutions_dict(load_jsonl(loc_file), key=key)
-        # for ins in _pred_dict:
-        #     if eval_level == 'file':
-        #         for func in _pred_dict[ins]:
-        #             fn = func.split(':')[0]
-        #             if fn not in pred_dict[ins]:
-        #                 pred_dict[ins].append(fn)
-        #     elif eval_level == 'module':
-        #         for func in _pred_dict[ins]:
-        #             mname = func.split(':')[-1].split('.')[0]
-        #             if mname not in pred_dict[ins]:
-        #                 pred_dict[ins].append(mname)
-        #     elif eval_level == 'function':
-        #         pred_dict[ins].extend(_pred_dict[ins])
             
         
     _gt_labels = []
     _pred_labels = []
     
-    # for loc in loc_output:
     for instance_id in gt_dict.keys():
         if selected_list and instance_id not in selected_list: continue
         if not gt_dict[instance_id]: continue
