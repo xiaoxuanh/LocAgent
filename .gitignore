@@ -154,13 +154,18 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+outputs_data
 outputs_data/
+index_data
+index_data/
+loc_bench_data
+loc_bench_data/
+test
+test/
 playground/
 scripts/env/
 scripts/plot/
 config.yaml
-index_data/
-test/
 deprecated/
 *.arrow
 test_*.py
@@ -171,7 +176,6 @@ test_*.py
 baselines/
 sft/wandb
 sft/qwen-w-lora-test
-loc_bench_data/
 *.pdf
 evaluation/gt_data/
 evaluation/agentless/

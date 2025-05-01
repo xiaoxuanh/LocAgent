@@ -37,18 +37,6 @@ filtered_instances=['pytest-dev__pytest-5227',
  'django__django-15213',
  'django__django-15902',
  
- 'tobymao__sqlglot-4477',
- 'pyodide__pyodide-1215',
- 'django__django-17811',
- 'tobymao__sqlglot-4497',
- 'optuna__optuna-5778',
- 'sagemath__sage-36814',
- 'tobymao__sqlglot-4457',
- 'tobymao__sqlglot-4505',
- 'tobymao__sqlglot-4430',
- 'raft-tech__TANF-app-3234',
-'AllenNeuralDynamics__foraging-behavior-browser-106',
-'Australian-Text-Analytics-Platform__atap-corpus-slicer-3',
  ]
 
 def _dcg(target: Tensor) -> Tensor:
@@ -208,6 +196,16 @@ def cal_metrics_w_file(gt_file, loc_file, key,
                     pred_dict[ins] = pred_modules
     else:
         pred_dict = convert_solutions_dict(load_jsonl(loc_file), key=key)
+        for ins in pred_dict:
+            pred_funcs = pred_dict[ins]
+            pred_modules = []
+            for i, pf in enumerate(pred_funcs):
+                if level == 'function':
+                    if pf.endswith('.__init__'):
+                        pf = pf[:(len(pf)-len('.__init__'))]
+                    if pf not in pred_modules:
+                        pred_modules.append(pf)
+            pred_dict[ins] = pred_modules
         
     _gt_labels = []
     _pred_labels = []
@@ -305,7 +303,15 @@ def cal_metrics_w_dataset(loc_file, key,
                 if mid not in gt_dict[instance['instance_id']]:
                     gt_dict[instance['instance_id']].append(mid)
         elif eval_level == 'function':
-            gt_dict[instance['instance_id']].extend(instance['edit_functions'])
+            for func in instance['edit_functions']:
+                fn = func.split(':')[0]
+                mname = func.split(':')[-1]
+                if mname.endswith('.__init__'):
+                    mname = mname[:(len(mname)-len('.__init__'))]
+                mid = f'{fn}:{mname}'
+                if mid not in gt_dict[instance['instance_id']]:
+                    gt_dict[instance['instance_id']].append(mid)
+            # gt_dict[instance['instance_id']].extend(instance['edit_functions'])
     
     # load predicted localization results
     if key == 'docs' and eval_level == 'file':
