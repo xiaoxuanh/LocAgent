@@ -2,7 +2,7 @@
 
 <p align="center">
    📑&nbsp; <a href="https://arxiv.org/abs/2503.09089" target="_blank">Paper</a>
-   | 📊&nbsp; <a href="https://huggingface.co/datasets/czlll/Loc-Bench" target="_blank">Loc-bench</a>
+   | 📊&nbsp; <a href="https://huggingface.co/datasets/czlll/Loc-Bench_V1" target="_blank">Loc-bench</a>
    | 🤗&nbsp; <a href="https://huggingface.co/czlll/Qwen2.5-Coder-7B-CL" target="_blank">Qwen2.5-Coder-7B-CL</a>
    | 🤗&nbsp; <a href="https://huggingface.co/czlll/Qwen2.5-Coder-32B-CL" target="_blank">Qwen2.5-Coder-32B-CL</a>
 </p>
@@ -31,12 +31,12 @@ By parsing codebases into directed heterogeneous graphs, LocAgent creates a ligh
 1. (Optional but recommended) Parse the codebase for each issue in the benchmark to generate graph indexes in batch.
    ```
    python dependency_graph/batch_build_graph.py \
-         --dataset 'czlll/Loc-Bench' \
+         --dataset 'czlll/Loc-Bench_V1' \
          --split 'test' \
          --num_processes 50 \
          --download_repo
    ```
-   - `dataset`: select the benchmark (by default it will be `SWE-Bench_Lite`); you can choose from `['czlll/SWE-bench_Lite', 'czlll/Loc-Bench']`(adapted for code localization) and SWE-bench series datasets like `['princeton-nlp/SWE-bench_Lite', 'princeton-nlp/SWE-bench_Verified', 'princeton-nlp/SWE-bench']`
+   - `dataset`: select the benchmark (by default it will be `SWE-Bench_Lite`); you can choose from `['czlll/SWE-bench_Lite', 'czlll/Loc-Bench_V1']`(adapted for code localization) and SWE-bench series datasets like `['princeton-nlp/SWE-bench_Lite', 'princeton-nlp/SWE-bench_Verified', 'princeton-nlp/SWE-bench']`
    - `repo_path`: the directory where you plan to pull or have already pulled the codebase
    - `index_dir`: the base directory where the generated graph index will be saved
    - `download_repo`: whether to download the codebase to `repo_path` before indexing

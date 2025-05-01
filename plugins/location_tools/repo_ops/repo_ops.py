@@ -368,10 +368,10 @@ def search_entity(query_info, include_files: List[str] = None):
                                                        retrieve_src=f"Match found for entity name `{used_term}`."
                                                        )
                             cur_query_results.append(query_result)
-                        if not use_sub_term:
-                            continue_search = False
-                        else:
-                            continue_search = True
+                    if not use_sub_term:
+                        continue_search = False
+                    else:
+                        continue_search = True
                                    
         
     # third: bm25 search (entity + content)
