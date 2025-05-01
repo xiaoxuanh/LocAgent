@@ -36,12 +36,8 @@ from plugins.location_tools.repo_ops.repo_ops import (
 import litellm
 from litellm import Message as LiteLLMMessage
 from openai import APITimeoutError
-from openai import OpenAI
-import openai
-client = OpenAI(
-    base_url=os.environ['OPENAI_API_BASE'],
-    api_key=os.environ['OPENAI_API_KEY']
-)
+from evaluation.eval_metric import filtered_instances
+
 
 from time import sleep
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
@@ -524,6 +520,7 @@ def localize(args):
     for bug in bench_tests:
         instance_id = bug["instance_id"]
         if instance_id in processed_instance:
+        # if instance_id in processed_instance or instance_id in filtered_instances:
             print(f"instance {instance_id} has already been processed, skip.")
         else:
             queue.put(bug)

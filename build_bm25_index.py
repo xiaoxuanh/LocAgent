@@ -8,8 +8,11 @@ import subprocess
 import torch.multiprocessing as mp
 import os.path as osp
 from datasets import load_dataset
-from dependency_graph.build_graph import build_graph, VERSION
+# from dependency_graph.build_graph import build_graph, VERSION
 from util.benchmark.setup_repo import setup_repo
+from plugins.location_tools.retriever.bm25_retriever import (
+    build_code_retriever_from_repo as build_code_retriever
+)
 
 
 def list_folders(path):
@@ -17,7 +20,7 @@ def list_folders(path):
 
 
 def run(rank, repo_queue, repo_path, out_path,
-        download_repo=False, instance_data=None):
+        download_repo=False, instance_data=None, similarity_top_k=10):
     while True:
         try:
             repo_name = repo_queue.get_nowait()
@@ -25,9 +28,9 @@ def run(rank, repo_queue, repo_path, out_path,
             # Queue is empty
             break
 
-        output_file = f'{osp.join(out_path, repo_name)}.pkl'
+        output_file = osp.join(out_path, repo_name)
         if osp.exists(output_file):
-            print(f'[{rank}] {repo_name} already processed, skipping.')
+            # print(f'[{rank}] {repo_name} already processed, skipping.')
             continue
 
         if download_repo:
@@ -47,9 +50,11 @@ def run(rank, repo_queue, repo_path, out_path,
 
         print(f'[{rank}] Start process {repo_name}')
         try:
-            G = build_graph(repo_dir, global_import=True)
-            with open(output_file, 'wb') as f:
-                pickle.dump(G, f)
+            retriever = build_code_retriever(repo_dir, persist_path=output_file,
+                                         similarity_top_k=similarity_top_k)
+            # G = build_graph(repo_dir, global_import=True)
+            # with open(output_file, 'wb') as f:
+            #     pickle.dump(G, f)
             print(f'[{rank}] Processed {repo_name}')
         except Exception as e:
             print(f'[{rank}] Error processing {repo_name}: {e}')
@@ -72,7 +77,7 @@ if __name__ == '__main__':
 
     
     dataset_name = args.dataset.split('/')[-1]
-    args.index_dir = f'{args.index_dir}/{dataset_name}/graph_index_{VERSION}/'
+    args.index_dir = f'{args.index_dir}/{dataset_name}/BM25_index/'
     os.makedirs(args.index_dir, exist_ok=True)
         
     # load selected repo instance id and instance_data

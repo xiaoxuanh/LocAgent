@@ -177,3 +177,5 @@ evaluation/gt_data/
 evaluation/agentless/
 sft/
 config.toml
+unsloth_compiled_cache/
+wandb/

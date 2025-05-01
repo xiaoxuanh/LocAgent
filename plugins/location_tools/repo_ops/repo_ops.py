@@ -843,6 +843,7 @@ def bm25_content_retrieve(
                 for span_id in node.metadata['span_ids']:
                     nid = f'{file}:{span_id}'
                     searcher = get_graph_entity_searcher()
+                    print(nid)
                     if searcher.has_node(nid):
                         ndata = searcher.get_node_data([nid], return_code_content=True)[0]
                         query_result = QueryResult(query_info=query_info, format_mode='preview', 
@@ -856,8 +857,8 @@ def bm25_content_retrieve(
                     else:
                         continue
         
-        cur_query_results = cur_query_results[:5]
-        return cur_query_results
+    cur_query_results = cur_query_results[:5]
+    return cur_query_results
 
 
 def _validate_graph_explorer_inputs(
