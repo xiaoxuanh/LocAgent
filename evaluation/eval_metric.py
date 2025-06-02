@@ -190,7 +190,10 @@ def cal_metrics_w_file(gt_file, loc_file, key,
                         func_n = func_n[:(len(func_n)-len('.__init__'))]
                     pred_funcs[i] = f"{fle}.py:{func_n.strip('/').replace('/', '.')}"
                 elif level == 'module':
-                    module_name = f'{fle}.py:{func_n.strip('/').split('/')[0]}'
+                    # original:
+                    # module_name = f'{fle}.py:{func_n.strip('/').split('/')[0]}'
+                    # modified:
+                    module_name = f'{fle}.py:{func_n.strip("/").split("/")[0]}'
                     if module_name not in pred_modules:
                         pred_modules.append(module_name)
                     pred_dict[ins] = pred_modules
@@ -326,9 +329,15 @@ def cal_metrics_w_dataset(loc_file, key,
                 if eval_level == 'function':
                     if func_n.endswith('.__init__'):
                         func_n = func_n[:(len(func_n)-len('.__init__'))]
-                    pred_funcs[i] = f'{fle}.py:{func_n.strip('/').replace('/', '.')}'
+                    # original:
+                    # pred_funcs[i] = f'{fle}.py:{func_n.strip('/').replace('/', '.')}'
+                    # modified:
+                    pred_funcs[i] = f'{fle}.py:{func_n.strip("/").replace("/", ".")}'
                 elif eval_level == 'module':
-                    module_name = f'{fle}.py:{func_n.strip('/').split('/')[0]}'
+                    # original:
+                    # module_name = f'{fle}.py:{func_n.strip('/').split('/')[0]}'
+                    # modified:
+                    module_name = f'{fle}.py:{func_n.strip("/").split("/")[0]}'
                     if module_name not in pred_modules:
                         pred_modules.append(module_name)
                     pred_dict[ins] = pred_modules

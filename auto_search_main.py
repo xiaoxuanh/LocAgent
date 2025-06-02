@@ -10,6 +10,8 @@ from typing import List
 from tqdm import tqdm
 from copy import deepcopy
 from datasets import load_dataset
+from openai import AzureOpenAI
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
 from util.runtime.execute_ipython import execute_ipython
 from util.runtime import function_calling
@@ -47,9 +49,30 @@ from util.runtime.fn_call_converter import (
     convert_non_fncall_messages_to_fncall_messages,
     STOP_WORDS as NON_FNCALL_STOP_WORDS
 )
+import platform
+
+
 # litellm.set_verbose=True
 # os.environ['LITELLM_LOG'] = 'DEBUG
 
+## below used when using OpenAI API directly
+# litellm.default_params = {"custom_llm_provider": "openai"}
+
+# helper function to handle azure API parameters
+def call_litellm(model, messages, temperature, **kwargs):
+    """Helper to handle Azure-specific parameters"""
+    if "azure/" in model:
+        kwargs.update({
+            "api_key": os.environ.get("AZURE_OPENAI_API_KEY"),
+            "api_base": os.environ.get("AZURE_OPENAI_ENDPOINT", "https://mass-swc.openai.azure.com/"),
+            "api_version": "2025-01-01-preview",
+        })
+    return litellm.completion(
+        model=model,
+        messages=messages,
+        temperature=temperature,
+        **kwargs
+    )
 
 def filter_dataset(dataset, filter_column: str, used_list: str):
     file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config.toml')
@@ -160,14 +183,23 @@ def auto_search_process(result_queue,
             # new conversation
             if tools and ('hosted_vllm' in model_name or 'qwen' in model_name.lower()):
                 messages = convert_fncall_messages_to_non_fncall_messages(messages, tools, add_in_context_learning_example=False)
-                response = litellm.completion(
+                
+                # Then call litellm
+                response = call_litellm(
+                    model=model_name,
+                    messages=messages,
+                    temperature=temp,
+                )
+                
+                
+                response = call_litellm(
                     model=model_name,
                     temperature=temp, top_p=0.8, repetition_penalty=1.05, 
                     messages=messages,
                     stop=NON_FNCALL_STOP_WORDS
                 )
             elif tools:
-                response = litellm.completion(
+                response = call_litellm(
                     model=model_name,
                     tools=tools,
                     messages=messages,
@@ -175,7 +207,7 @@ def auto_search_process(result_queue,
                     # stop=['</execute_ipython>'], #</finish>',
                 )
             else:
-                response = litellm.completion(
+                response = call_litellm(
                     model=model_name,
                     messages=messages,
                     temperature=temp,
@@ -360,7 +392,12 @@ def run_localize(rank, args, bug_queue, log_queue, output_file_lock, traj_file_l
                         "content": get_task_instruction(bug, include_pr=True, include_hint=True),
                     })
                     
-                    ctx = mp.get_context('fork')  # use fork to inherit context!!
+                    # ctx = mp.get_context('fork')  # use fork to inherit context!!
+                    # flexible for different OS
+                    if platform.system() == 'Windows':
+                        ctx = mp.get_context('spawn')
+                    else:
+                        ctx = mp.get_context('fork')
                     result_queue = ctx.Manager().Queue()
                     tools = None
                     if args.use_function_calling:
@@ -529,12 +566,19 @@ def localize(args):
     log_queue = manager.Queue()
     queue_listener = logging.handlers.QueueListener(log_queue, *logging.getLogger().handlers)
     queue_listener.start()
-    mp.spawn(
-        run_localize,
-        nprocs=min(num_bugs, args.num_processes) if args.num_processes > 0 else num_bugs,
-        args=(args, queue, log_queue, output_file_lock, traj_file_lock),
-        join=True
-    )
+    if args.num_processes > 1:
+        mp.spawn(
+            run_localize,
+            nprocs=min(num_bugs, args.num_processes) if args.num_processes > 0 else num_bugs,
+            args=(args, queue, log_queue, output_file_lock, traj_file_lock),
+            join=True
+        )
+    else:
+        # single process
+        while not queue.empty():
+            bug = queue.get()
+            run_localize(0, args, queue, log_queue, output_file_lock, traj_file_lock)
+
     queue_listener.stop()
     
     if args.rerun_empty_location:
@@ -602,6 +646,7 @@ def main():
                  # fine-tuned model
                  "openai/qwen-7B", "openai/qwen-7B-128k", "openai/ft-qwen-7B", "openai/ft-qwen-7B-128k",
                  "openai/qwen-32B", "openai/qwen-32B-128k", "openai/ft-qwen-32B", "openai/ft-qwen-32B-128k",
+                 "azure/gpt-4.1-mini", "Qwen/Qwen2.5-Coder-32B-Instruct-fast"
         ]
     )
     parser.add_argument("--use_function_calling", action="store_true",

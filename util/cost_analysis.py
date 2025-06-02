@@ -34,6 +34,7 @@ MODEL_COST_PER_INPUT = {
     'azure/gpt-4o-mini-ft': 1.65e-07,
     'azure/gpt-4o-mini-1029-ft': 1.65e-07,
     'azure/gpt-4o-mini': 1.65e-07,
+    'azure/gpt-4.1-mini': 1.65e-07,
     'hosted_vllm/Qwen/Qwen2.5-Coder-7B-Instruct': 0,
     'hosted_vllm/Qwen/Qwen2.5-Coder-32B-Instruct': 0,
 }
@@ -69,6 +70,7 @@ MODEL_COST_PER_OUTPUT = {
     'azure/gpt-4o-mini-ft': 6.6e-07,
     'azure/gpt-4o-mini-1029-ft': 6.6e-07,
     'azure/gpt-4o-mini': 6.6e-07,
+    'azure/gpt-4.1-mini': 6.6e-07,
     'hosted_vllm/Qwen/Qwen2.5-Coder-7B-Instruct': 0,
     'hosted_vllm/Qwen/Qwen2.5-Coder-32B-Instruct': 0,
 }
