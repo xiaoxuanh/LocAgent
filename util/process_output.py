@@ -12,13 +12,16 @@ from dependency_graph.build_graph import (
 )
 import pickle
 import os
+from pathlib import Path
 GRAPH_INDEX_DIR = os.environ.get("GRAPH_INDEX_DIR", "index_data/graph_index")
 
 
 def parse_raw_loc_output(raw_output, valid_files):
     valid_top_folder = []
     for fn in valid_files:
-        folder = fn.split('/')[0]
+        # folder = fn.split('/')[0] # old, fix for cross-platform compatibility
+        fn_normalized = fn.replace('\\', '/')
+        folder = fn_normalized.split('/')[0]
         if folder not in valid_top_folder:
             valid_top_folder.append(folder)
     
@@ -74,7 +77,6 @@ def get_loc_results_from_raw_outputs(instance_id, raw_outputs, include_variable=
         all_found_files[i] = found_files
         edit_entities = get_edit_entities_from_raw_locs(found_edit_locs, searcher,
                                                         include_variable=include_variable)
-        
         filtered_edit_entities = []
         edit_modules = []
         for entity in edit_entities:
@@ -114,13 +116,15 @@ def extract_python_file_path(line, valid_folders):
     # Define a regular expression pattern to match file paths ending with .py
     # The pattern looks for sequences of characters that can include letters, numbers,
     # underscores, hyphens, dots, or slashes, ending with '.py'
-    pattern = r'[\w\./-]+\.py'
+    pattern = r'[\w\./\\-]+\.py'
 
     # Search for the pattern in the line
     match = re.search(pattern, line)
 
     if match:
         matched_fp = match.group(0)
+        # Fix: Normalize to forward slashes
+        matched_fp = matched_fp.replace('\\', '/')
         start_index = len(matched_fp)
         for folder in valid_folders:
             if f'{folder}/' in matched_fp:

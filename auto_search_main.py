@@ -12,6 +12,7 @@ from copy import deepcopy
 from datasets import load_dataset
 from openai import AzureOpenAI
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+import pdb
 
 from util.runtime.execute_ipython import execute_ipython
 from util.runtime import function_calling
@@ -146,7 +147,7 @@ def auto_search_process(result_queue,
     #             #   or model_name == 'litellm_proxy/o3-mini-2025-01-31'
                 ):
         use_function_calling = False
-        
+    # pdb.set_trace()
     # for LLM which do not support function calling
     if not use_function_calling:
         # 转换message
@@ -190,8 +191,6 @@ def auto_search_process(result_queue,
                     messages=messages,
                     temperature=temp,
                 )
-                
-                
                 response = call_litellm(
                     model=model_name,
                     temperature=temp, top_p=0.8, repetition_penalty=1.05, 
@@ -407,26 +406,51 @@ def run_localize(rank, args, bug_queue, log_queue, output_file_lock, traj_file_l
                             codeact_enable_tree_structure_traverser=True,
                             simple_desc = args.simple_desc,
                         )
-                    process = ctx.Process(target=auto_search_process, kwargs={
-                        'result_queue': result_queue,
-                        'model_name': args.model,
-                        'messages': messages,
-                        'fake_user_msg': auto_search.FAKE_USER_MSG_FOR_LOC,
-                        'temp': 1,
-                        'tools': tools,
-                        'use_function_calling': args.use_function_calling,
-                    })
-                    process.start()
-                    process.join(timeout=args.timeout)
-                    if process.is_alive():
-                        logger.warning(f"{instance_id} attempt {max_attempt_num} execution flow "
-                                        f"reconstruction exceeded timeout. Terminating.")
-                        process.terminate()
-                        process.join()
-                        raise TimeoutError
-                    
-                    # loc_result, messages, traj_data = result_queue.get()
-                    result = result_queue.get()
+
+                    # Instead of creating a process
+                    if True:  # Temporary debug mode
+                        # Create a simple queue
+                        class SimpleQueue:
+                            def put(self, item):
+                                self.item = item
+                            def get(self):
+                                return self.item
+                        
+                        result_queue = SimpleQueue()
+                        
+                        # Call directly (now pdb will work)
+                        auto_search_process(
+                            result_queue=result_queue,
+                            model_name=args.model,
+                            messages=messages,
+                            fake_user_msg=auto_search.FAKE_USER_MSG_FOR_LOC,
+                            temp=1,
+                            tools=tools,
+                            use_function_calling=args.use_function_calling,
+                        )
+                        
+                        result = result_queue.get()
+                    else:
+                        process = ctx.Process(target=auto_search_process, kwargs={
+                            'result_queue': result_queue,
+                            'model_name': args.model,
+                            'messages': messages,
+                            'fake_user_msg': auto_search.FAKE_USER_MSG_FOR_LOC,
+                            'temp': 1,
+                            'tools': tools,
+                            'use_function_calling': args.use_function_calling,
+                        })
+                        process.start()
+                        process.join(timeout=args.timeout)
+                        if process.is_alive():
+                            logger.warning(f"{instance_id} attempt {max_attempt_num} execution flow "
+                                            f"reconstruction exceeded timeout. Terminating.")
+                            process.terminate()
+                            process.join()
+                            raise TimeoutError
+                        
+                        # loc_result, messages, traj_data = result_queue.get()
+                        result = result_queue.get()
                     if isinstance(result, dict) and 'error' in result and result['type'] == 'BadRequestError':
                         raise litellm.BadRequestError(result['error'], args.model, args.model.split('/')[0])
                         # print(f"Error occurred in subprocess: {result['error']}")
@@ -484,6 +508,7 @@ def run_localize(rank, args, bug_queue, log_queue, output_file_lock, traj_file_l
         else:
             # process multiple loc outputs
             logger.info(f"==== localizing {instance_id} succeed, process multiple loc outputs ====")
+            # pdb.set_trace()
 
             # all_valid_files = get_all_valid_files()
             all_found_files, all_found_modules, all_found_entities = get_loc_results_from_raw_outputs(
