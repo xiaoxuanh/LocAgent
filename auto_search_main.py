@@ -5,6 +5,8 @@ import logging
 import logging.handlers
 import time
 import toml
+import subprocess
+from datetime import datetime, timedelta
 from queue import Empty
 from typing import List
 from tqdm import tqdm
@@ -59,10 +61,60 @@ import platform
 ## below used when using OpenAI API directly
 # litellm.default_params = {"custom_llm_provider": "openai"}
 
+TOKEN_EXPIRY_TIME = None
+TOKEN_REFRESH_BUFFER = 300  # Refresh token 5 minutes before expiry
+
+def get_azure_token():
+    """Get a fresh Azure access token"""
+    try:
+        result = subprocess.run(
+            ['az', 'account', 'get-access-token', '--scope', 'https://cognitiveservices.azure.com/.default', '--output', 'json'],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        token_data = json.loads(result.stdout)
+        
+        # Parse expiry time
+        expiry_str = token_data.get('expiresOn', '')
+        if expiry_str:
+            # Parse the expiry time (format: "2024-01-01 12:00:00.000000")
+            TOKEN_EXPIRY_TIME = datetime.strptime(expiry_str.split('.')[0], '%Y-%m-%d %H:%M:%S')
+        else:
+            # Default to 1 hour from now if no expiry time provided
+            TOKEN_EXPIRY_TIME = datetime.now() + timedelta(hours=1)
+        
+        return token_data['accessToken'], TOKEN_EXPIRY_TIME
+    except Exception as e:
+        logging.error(f"Failed to get Azure token: {e}")
+        raise
+
+def refresh_token_if_needed():
+    """Check if token needs refresh and refresh if necessary"""
+    global TOKEN_EXPIRY_TIME
+    
+    if TOKEN_EXPIRY_TIME is None:
+        # First time, get token
+        token, TOKEN_EXPIRY_TIME = get_azure_token()
+        os.environ['AZURE_OPENAI_API_KEY'] = token
+        logging.info("Initial token obtained")
+        return
+    
+    # Check if token will expire soon
+    time_until_expiry = (TOKEN_EXPIRY_TIME - datetime.now()).total_seconds()
+    
+    if time_until_expiry < TOKEN_REFRESH_BUFFER:
+        logging.info(f"Token expiring in {time_until_expiry} seconds, refreshing...")
+        token, TOKEN_EXPIRY_TIME = get_azure_token()
+        os.environ['AZURE_OPENAI_API_KEY'] = token
+        logging.info(f"Token refreshed, new expiry: {TOKEN_EXPIRY_TIME}")
+
+
 # helper function to handle azure API parameters
 def call_litellm(model, messages, temperature, **kwargs):
     """Helper to handle Azure-specific parameters"""
     if "azure/" in model:
+        refresh_token_if_needed()
         kwargs.update({
             "api_key": os.environ.get("AZURE_OPENAI_API_KEY"),
             "api_base": os.environ.get("AZURE_OPENAI_ENDPOINT", "https://mass-swc.openai.azure.com/"),

@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import pandas as pd
 from util.utils import load_jsonl
 from typing import Optional
@@ -9,8 +10,10 @@ import torch
 from datasets import load_dataset
 import collections
 import re
+import pdb
 
-filtered_instances=['pytest-dev__pytest-5227',
+filtered_instances=[
+ 'pytest-dev__pytest-5227',
  'sympy__sympy-15345',
  'sympy__sympy-21614',
  'scikit-learn__scikit-learn-13439',
@@ -35,8 +38,7 @@ filtered_instances=['pytest-dev__pytest-5227',
  'django__django-14411',
  'sympy__sympy-21055',
  'django__django-15213',
- 'django__django-15902',
- 
+ 'django__django-15902'
  ]
 
 def _dcg(target: Tensor) -> Tensor:
@@ -72,7 +74,6 @@ def acc_at_k(pred_target: Tensor, ideal_target: Tensor, k: Optional[int] = None)
 
     comparison = relevant == total_relevant
     return comparison.sum()/relevant.shape[0]
-
 
 def precision_at_k(pred_target: Tensor, ideal_target: Tensor, k: Optional[int] = None) -> Tensor:
     pred_target = pred_target[:, :k]  # 只考虑前 k 个预测结果
@@ -199,6 +200,10 @@ def cal_metrics_w_file(gt_file, loc_file, key,
                     pred_dict[ins] = pred_modules
     else:
         pred_dict = convert_solutions_dict(load_jsonl(loc_file), key=key)
+        for ins_id, preds in pred_dict.items():
+            if preds and isinstance(preds[0], list):
+                # Only flatten if we have a list of lists
+                pred_dict[ins_id] = [item for sublist in preds for item in sublist]
         for ins in pred_dict:
             pred_funcs = pred_dict[ins]
             pred_modules = []
@@ -343,11 +348,18 @@ def cal_metrics_w_dataset(loc_file, key,
                     pred_dict[ins] = pred_modules
     else:
         pred_dict = convert_solutions_dict(load_jsonl(loc_file), key=key)
+        # flatten the list of predicted locations only if they are nested
+        for ins_id, preds in pred_dict.items():
+            if preds and isinstance(preds[0], list):
+                # Only flatten if we have a list of lists
+                flattened = [item for sublist in preds for item in sublist]
+                seen = set()
+                pred_dict[ins_id] = [x for x in flattened if not (x in seen or seen.add(x))]
             
         
     _gt_labels = []
     _pred_labels = []
-    
+    # pdb.set_trace()
     for instance_id in gt_dict.keys():
         if selected_list and instance_id not in selected_list: continue
         if not gt_dict[instance_id]: continue
@@ -416,3 +428,19 @@ def evaluate_results(loc_file, level2key_dict,
                         axis=1, 
                         keys=['file', 'module', 'function'])
     return all_df
+
+if __name__ == '__main__':
+    level2key_dict = {
+    'file': 'found_files',
+    'module': 'found_modules',
+    'function': 'found_entities',
+    }
+
+    # eval with dataset
+    locagent_loc_file = './results/location/loc_outputs.jsonl'
+    locagent_res = evaluate_results(locagent_loc_file,
+                            level2key_dict,
+                            metrics=['acc'],
+                            # metrics=['ndcg'],
+                            )
+    print(locagent_res)

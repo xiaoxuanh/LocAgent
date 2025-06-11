@@ -47,7 +47,7 @@ python auto_search_main.py `
     --localize `
     --merge `
     --output_folder $result_path/location `
-    --eval_n_limit 300 `
+    --eval_n_limit 25 `
     --num_processes 1 `
     --use_function_calling `
     --simple_desc
