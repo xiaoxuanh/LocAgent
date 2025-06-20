@@ -163,6 +163,7 @@ loc_bench_data/
 test
 test/
 playground/
+playground2/
 scripts/env/
 scripts/plot/
 config.yaml

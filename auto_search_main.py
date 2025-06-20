@@ -118,12 +118,13 @@ def call_litellm(model, messages, temperature, **kwargs):
         kwargs.update({
             "api_key": os.environ.get("AZURE_OPENAI_API_KEY"),
             "api_base": os.environ.get("AZURE_OPENAI_ENDPOINT", "https://mass-swc.openai.azure.com/"),
-            "api_version": "2025-01-01-preview",
+            "api_version": os.environ.get("AZURE_OPENAI_API_VERSION", "2025-04-14"),
         })
     return litellm.completion(
         model=model,
         messages=messages,
         temperature=temperature,
+        max_tokens=4096,  # Default max tokens, can be adjusted
         **kwargs
     )
 
@@ -723,7 +724,7 @@ def main():
                  # fine-tuned model
                  "openai/qwen-7B", "openai/qwen-7B-128k", "openai/ft-qwen-7B", "openai/ft-qwen-7B-128k",
                  "openai/qwen-32B", "openai/qwen-32B-128k", "openai/ft-qwen-32B", "openai/ft-qwen-32B-128k",
-                 "azure/gpt-4.1-mini", "Qwen/Qwen2.5-Coder-32B-Instruct-fast"
+                 "azure/gpt-4.1", "azure/gpt-4.1-mini", "Qwen/Qwen2.5-Coder-32B-Instruct-fast"
         ]
     )
     parser.add_argument("--use_function_calling", action="store_true",
